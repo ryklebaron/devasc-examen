@@ -1,0 +1,6 @@
+---
+- hosts: webservers
+  tasks:
+    - name: RUN ECHO COMMAND
+      command: /bin/echo hello world
+      

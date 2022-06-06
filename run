@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Draait ansible-playbook met de opgegeven opties.
+#
+# Gebruikg -l (limit) en -t (tag) om tegen specifieke hosts/groups te runnen en/of alleen de rollen of taken met de
+# gegeven tags.
+#
+# Bijvoorbeeld:
+#
+# ./run -l server -t nginx
+#
+
+set -eu
+time ansible-playbook -i hosts  site.yml  "$@"

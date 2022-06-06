@@ -1,0 +1,27 @@
+- hosts: '{{ hostname  }}'
+  remote_user: '{{ user }}'
+  gather_facts: no  # to not require python
+  become: yes
+
+  tasks:
+  - name: Install Python
+    raw: if test -f /usr/bin/python; then true; else (apt-get update && apt-get -y install python-is-python3 && touch /root/.python_installed); fi
+
+  - name: Create ansible user
+    user:
+      name: ansible
+      system: yes
+      comment: Ansible management user
+      state: present
+
+  - name: Set up authorized keys for the ansible user
+    authorized_key:
+      user: ansible
+      state: present
+      # TODO: The key file should be variable
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+  - name: Set up passwordless sudo permissions
+    copy:
+      dest: /etc/sudoers.d/ansible
+      content: 'ansible ALL=(ALL) NOPASSWD: ALL'

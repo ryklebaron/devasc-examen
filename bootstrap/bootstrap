@@ -1,0 +1,58 @@
+#!/bin/bash
+set -e
+dir=$(dirname "$0")
+
+OPTIND=1
+port=22
+while getopts "h?p:" opt; do
+    case "$opt" in
+    h|\?)
+        echo 'Usage: bootstrap [options] [host] [user]'
+	echo
+	echo 'Options:'
+	echo ' -h -?      Show help'
+	echo ' -p [port]  SSH Port (default 22)'
+        exit 0
+        ;;
+    p)  port=$OPTARG
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "${1:-}" = "--" ] && shift
+
+host=${1:-}
+user=${2:-}
+
+cat <<'EOF'
+
+Bootstraps an ubuntu (debian?) system for mananagement by Ansible
+or adds the public ssh key from this host to an already managed system
+
+It installs the required packages and creates an 'ansible' user
+with passwordless sudo rights and ssh key authentication.
+
+Requires an existing user with ssh access and sudo rights for the
+bootstrapping process
+
+EOF
+
+[[ -z $1 ]] && read -e -p "Hostname: " host
+[[ -z $2 ]] && read -e -p "User: " user
+
+options=""
+# Detect if publickey authentication is possible
+ssh -p "$port" -o PreferredAuthentications=publickey "$user@$host" true || options="$options --ask-pass"
+
+# We write a tmp host file in our dir so that it is mounted under /data in ansible container
+echo -e "[temp]\n$host ansible_port=$port" > "$dir/tmphosts"
+echo "Bootstrapping Ansible management for host: $host, using user: $user"
+(cd "$dir" && EXTRA_DOCKER_OPTS="-i" ansible-playbook bootstrap.yml \
+  -i tmphosts \
+  -b \
+  $options \
+  --ask-become-pass \
+  --extra-vars "hostname=$host user=$user"
+)

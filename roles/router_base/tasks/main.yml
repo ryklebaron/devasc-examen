@@ -1,0 +1,111 @@
+- name: Creating backup of routers
+  ios_config:
+    backup: yes
+    backup_options:
+      dir_path: $PWD/backup
+
+- name: Set IPv4 address on GigabitEthernet1 (inside)
+  ios_config:
+    parents: "interface GigabitEthernet1"
+    lines:
+      - description Internet
+      - ip address 192.168.174.100 255.255.255.0
+      - ip nat inside
+
+- name: Set IPv4 address on GigabitEthernet2 (outside)
+  ios_config:
+    parents: "interface GigabitEthernet2"
+    lines:
+      - description ProductieLan
+      - ip address 192.168.199.1 255.255.255.0
+      - ip nat outside
+
+- name: Create dhcp server pool dhcppool
+  ios_config:
+    lines:
+      - ip dhcp pool dhcppool
+      - network 192.168.174.0 255.255.255.0
+      - dns-server 8.8.8.8
+      - default-router 192.168.174.100
+      
+
+- name: Encrypt passwords
+  ios_config:
+    lines:
+      - service password-encryption
+  
+- name: Enable secret & ssh v2 & authentication-retries 3
+  ios_config: 
+    lines:
+      - enable secret cisco 
+      - ip ssh version 2
+      - ip ssh authentication-retries 3
+  
+- name: Enable only secure web access
+  ios_config:
+    lines: 
+      - no ip http server # Make sure web access is disabled (http)
+      - ip http authentication local # Removing default setting in the virtual router
+      - ip http secure-server # Make sure web access is disabled (https)
+
+- name: Secure line console
+  ios_config:
+    lines:
+      - line console 0
+      - login local
+      - exec-timeout 3
+  
+- name: set login to local on line vty 0 4
+  ios_config:
+    parents: "line vty 0 4"
+    lines:
+      - login local
+      - password Welkom01! # No secret option available here
+  
+- name: Disable logging sychronous
+  ios_config:
+    parents: "line vty 0 4"
+    lines:
+      - no logging synchronous
+          
+- name: Create acl 
+  ios_config:
+    lines:
+      - 101 permit ip any any #Allow access from all to all, used for NAT
+    parents: ip access-list extended test
+  
+- name: Set NAT on interface
+  ios_config:
+    lines:
+      - ip nat inside source list 101 interface GigabitEthernet2 overload
+
+- name: set portforwarding for webserver access
+  ios_config:
+    lines:
+      - ip nat inside source static tcp 192.168.174.100 80 192.168.199.1 80 extendable
+
+
+- name: Set router hostname to inventory_hostname
+  ios_config:
+    lines:
+      - hostname {{ inventory_hostname }}
+
+- name: MOTD Banner
+  cisco.ios.ios_banner:
+    banner: login
+    text: |
+      Unauthorized access is prohibited.
+      Your session will be logged.
+    state: present 
+
+- name: Disable ip domain lookup
+  ios_config:
+    lines: no ip domain-lookup
+
+- name: Keepalives for tcp sessions
+  ios_config:
+    lines:
+      - service tcp-keepalives-in
+      - service tcp-keepalives-out
+
+      

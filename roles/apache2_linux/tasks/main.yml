@@ -1,0 +1,61 @@
+- name: Install required system packages for docker
+  apt:
+    pkg:
+     - apt-transport-https
+     - ca-certificates
+     - curl
+     - software-properties-common
+     - python3-pip
+     - virtualenv
+     - python3-setuptools
+    state: latest
+    update_cache: true
+  
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/debian/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/debian buster stable
+    state: present
+
+- name: Update apt and install docker-ce
+  apt:
+    name: docker-ce
+    state: latest
+    update_cache: true
+
+- name: Install Docker Module for Python
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  pip:
+    name: docker
+
+- name: Create directory to mount website root 
+  file: 
+    path: /srv/containers/httpd
+    state: directory
+
+- name: Install docker apache2 website
+  docker_container:
+    name: apache2_webserver
+    image: httpd:2.4
+    pull: true
+    ports: 80:80
+    restart_policy: always
+    state: started
+    volumes:
+      - "/srv/containers/httpd:/usr/local/apache2/htdocs/"
+ 
+- name: Move index.html to container
+  template: 
+    src:  templates/index.html.j2
+    dest: "/srv/containers/httpd/index.html"
+    mode: 0644
+     
+
+
+
+

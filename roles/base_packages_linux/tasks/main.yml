@@ -1,0 +1,25 @@
+---
+    # sudo add-apt-repository ppa:bashtop-monitor/bashtop
+    # sudo apt update
+    # sudo apt install bashtop
+
+- name: Installing useful packages
+  apt:
+    name: 
+      - vim
+      - net-tools
+      - nmap
+    state: present
+    update_cache: yes
+
+- name: Set hostname 
+  hostname:
+    name: webserver
+
+- name: Create user kandidaat
+  user:
+    name: kandidaat
+    uid: 1000
+    group: root
+    shell: /bin/bash
+
